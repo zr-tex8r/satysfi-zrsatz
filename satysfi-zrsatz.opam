@@ -1,0 +1,26 @@
+opam-version: "2.0"
+name: "satysfi-zrsatz"
+version: "0.2.0"
+synopsis: "ZR's miscellaneous SATySFi packages"
+description: """
+ZR's miscellaneous SATySFi packages, mainly related to typesetting.
+
+This requires Satyrographos to install. See https://github.com/na4zagin3/satyrographos.
+"""
+maintainer: "Takayuki YATO <zr_tex8r-allez@yahoo.co.jp>"
+authors: "Takayuki YATO <zr_tex8r-allez@yahoo.co.jp>"
+license: "MIT"
+homepage: "https://github.com/zr-tex8r/satysfi-zrsatz"
+bug-reports: "https://github.com/zr-tex8r/satysfi-zrsatz"
+dev-repo: "git+https://github.com/zr-tex8r/satysfi-zrsatz.git"
+depends: [
+  "satysfi" {>= "0.0.3" & < "0.0.4"}
+  "satyrographos" {>= "0.0.1" & < "0.0.2"}
+]
+build: [ ]
+install: [
+  [make "-f" "Makefile" "install" "PREFIX=%{prefix}%"]
+]
+remove: [
+  [make "-f" "Makefile" "uninstall" "PREFIX=%{prefix}%"]
+]
