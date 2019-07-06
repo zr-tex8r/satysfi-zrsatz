@@ -1,0 +1,110 @@
+% zgr0.satyh: ZR modules related to graphics
+%
+% Copyright (c) 2018 Takayuki YATO (aka. "ZR")
+%   GitHub:   https://github.com/zr-tex8r
+%   Twitter:  @zr_tex8r
+% Distributed under the MIT License.
+@require: pervasives
+@require: list
+
+%=========================================================== module ZGr0
+module ZGr0 : sig
+
+type matrix
+val identity : matrix
+val scale : float * float -> matrix
+val translate : length * length -> matrix
+val matrix : float * float * float * float * length * length -> matrix
+type z-pre-path
+val path-of : z-pre-path -> pre-path
+val path : matrix -> point -> z-pre-path
+val line-to : point -> z-pre-path -> z-pre-path
+val curve-to : point -> point -> point -> z-pre-path -> z-pre-path
+val close : z-pre-path -> path
+val line-close : z-pre-path -> path
+val curve-close : point -> point -> z-pre-path -> path
+val lines-to : point list -> z-pre-path -> z-pre-path
+val curves-to : (point * point * point) list -> z-pre-path -> z-pre-path
+val ellipse : matrix -> point -> (length * length) -> path
+val circle : matrix -> point -> length -> path
+type canvas
+val make-canvas : length -> length -> length -> matrix -> canvas
+val c-path : canvas -> point -> z-pre-path
+val c-ellipse : canvas -> point -> (length * length) -> path
+val c-circle : canvas -> point -> length -> path
+val fill : color -> path -> canvas -> canvas
+val stroke : length -> color -> path -> canvas -> canvas
+val fill-stroke : color -> length -> color -> path -> canvas -> canvas
+val inline-canvas : canvas -> inline-boxes
+
+end = struct
+
+type matrix = float * float * float * float * length * length
+
+let identity = (1., 0., 0., 1., 0pt, 0pt)
+let scale (sx, sy) = (sx, 0., 0., sy, 0pt, 0pt)
+let translate (tx, ty) = (1., 0., 0., 1., tx, ty)
+let matrix mtx = mtx
+
+let trans (a, b, c, d, e, f) (x, y) =
+  (x *' a +' y *' c +' e, x *' b +' y *' d +' f)
+
+type z-pre-path = pre-path * matrix
+
+let path-of (pth, _) = pth
+
+let prim-line-to = line-to
+let path mtx p =
+  (start-path (trans mtx p), mtx)
+let line-to p (pth, mtx) =
+  (pth |> prim-line-to (trans mtx p), mtx)
+let curve-to p1 p2 p3 (pth, mtx) =
+  (pth |> bezier-to (trans mtx p1) (trans mtx p2) (trans mtx p3), mtx)
+let close (pth, _) =
+  terminate-path pth
+let line-close (pth, _) =
+  close-with-line pth
+let curve-close p1 p2 (pth, mtx) =
+  close-with-bezier (trans mtx p1) (trans mtx p2) pth
+
+let lines-to ps zpth =
+  List.fold-left (fun zpth p -> zpth |> line-to p) zpth ps
+let curves-to crvs zpth =
+  List.fold-left (fun zpth (p1, p2, p3) -> zpth |> curve-to p1 p2 p3) zpth crvs
+
+let alpha = 0.55228475
+let ellipse mtx (cx, cy) (rx, ry) =
+  let (ax, ay) = (rx *' alpha, ry *' alpha) in
+  path mtx (cx +' rx, cy)
+    |> curve-to (cx +' rx, cy +' ay) (cx +' ax, cy +' ry) (cx, cy +' ry)
+    |> curve-to (cx -' ax, cy +' ry) (cx -' rx, cy +' ay) (cx -' rx, cy)
+    |> curve-to (cx -' rx, cy -' ay) (cx -' ax, cy -' ry) (cx, cy -' ry)
+    |> curve-close (cx +' ax, cy -' ry) (cx +' rx, cy -' ay)
+let circle mtx ctr rds =
+  ellipse mtx ctr (rds, rds)
+
+type metrics = length * length * length
+
+type canvas = metrics * matrix * (graphics list)
+
+let make-canvas wd ht dp mtx =
+  ((wd, ht, dp), mtx, [])
+let c-path (_, mtx, _) =
+  path mtx
+let c-ellipse (_, mtx, _) =
+  ellipse mtx
+let c-circle (_, mtx, _) =
+  circle mtx
+let fill clr pth (mtr, mtx, gs) =
+  (mtr, mtx, (fill clr pth) :: gs)
+let stroke lwd clr pth (mtr, mtx, gs) =
+  (mtr, mtx, (stroke lwd clr pth) :: gs)
+let fill-stroke fclr lwd sclr pth cvs =
+  cvs |> fill fclr pth |> stroke lwd sclr pth
+let inline-canvas ((wd, ht, dp), mtx, gs) = 
+  let gs1 = List.reverse gs in
+  inline-graphics wd ht dp (fun p -> List.map (shift-graphics p) gs1)
+
+end
+%=========================================================== done
+% EOF
