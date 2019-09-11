@@ -1,0 +1,8 @@
+(version "0.0.2")
+(library
+  (name "zrsatz")
+  (version "0.2.0")
+  (sources
+    ((package "zgr0.satyh" "zgr0.satyh")))
+  (opam "satysfi-zrsatz.opam")
+  (compatibility ((satyrographos 0.0.1))))
